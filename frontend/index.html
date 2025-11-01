@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>TaskTracker — Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="header">
+    <h1>TaskTracker</h1>
+    <div>
+      <a href="/auth.html">Login / Register</a>
+    </div>
+  </div>
+
+  <div style="margin-bottom:12px;">
+    <label class="small">Add task:</label>
+    <div class="row" id="addRow">
+      <input type="text" id="newTitle" placeholder="Task title" />
+      <input type="date" id="newDue" />
+      <button class="btn" id="addBtn">Add</button>
+    </div>
+  </div>
+
+  <div class="board">
+    <div class="column" data-status="todo">
+      <h2>To Do</h2>
+      <div class="list" id="col-todo"></div>
+    </div>
+
+    <div class="column" data-status="in-progress">
+      <h2>In Progress</h2>
+      <div class="list" id="col-in-progress"></div>
+    </div>
+
+    <div class="column" data-status="done">
+      <h2>Done</h2>
+      <div class="list" id="col-done"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <label><input type="checkbox" id="hideCompleted" /> Hide completed</label>
+    <span class="small" id="statusMsg"></span>
+  </div>
+
+<script>
+const API_BASE = "/api";
+
+async function fetchTasks(){
+  const res = await fetch(API_BASE + "/tasks");
+  const j = await res.json();
+  return j.data || [];
+}
+
+function makeTaskElement(task){
+  const el = document.createElement("div");
+  el.className = "task";
+  el.draggable = true;
+  el.dataset.id = task.id;
+  el.dataset.status = task.status;
+
+  // title
+  const title = document.createElement("div");
+  title.className = "title";
+  title.textContent = task.title;
+  el.appendChild(title);
+
+  // meta: due date + actions
+  const meta = document.createElement("div");
+  meta.className = "meta";
+
+  const due = document.createElement("div");
+  due.textContent = task.due_date ? ("Due: " + task.due_date) : "";
+  meta.appendChild(due);
+
+  const actions = document.createElement("div");
+  actions.innerHTML = `
+    <button class="btn secondary" data-action="edit">Edit</button>
+    <button class="btn" data-action="delete">Delete</button>
+  `;
+  meta.appendChild(actions);
+  el.appendChild(meta);
+
+  // attach drag events
+  el.addEventListener("dragstart", (ev) => {
+    ev.dataTransfer.setData("text/plain", task.id);
+    el.classList.add("dragging");
+  });
+  el.addEventListener("dragend", ()=> el.classList.remove("dragging"));
+
+  // action handlers
+  el.querySelectorAll("button").forEach(btn=>{
+    btn.addEventListener("click", async (ev)=>{
+      const action = btn.dataset.action;
+      if(action === "delete"){
+        if(!confirm("Delete task?")) return;
+        await fetch(`${API_BASE}/tasks/${task.id}`, {method:"DELETE"});
+        loadAndRender();
+      } else if(action === "edit"){
+        const newTitle = prompt("Edit title", task.title);
+        if(newTitle === null) return;
+        const newDue = prompt("Due date (YYYY-MM-DD) or empty", task.due_date || "");
+        await fetch(`${API_BASE}/tasks/${task.id}`, {
+          method:"PUT",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({title: newTitle, due_date: newDue})
+        });
+        loadAndRender();
+      }
+    });
+  });
+
+  return el;
+}
+
+async function loadAndRender(){
+  const hideCompleted = document.getElementById("hideCompleted").checked;
+  const lists = {
+    "todo": document.getElementById("col-todo"),
+    "in-progress": document.getElementById("col-in-progress"),
+    "done": document.getElementById("col-done")
+  };
+  // clear
+  Object.values(lists).forEach(l => l.innerHTML = "");
+
+  const tasks = await fetchTasks();
+  tasks.forEach(t => {
+    if(hideCompleted && t.status === "done") return;
+    const el = makeTaskElement(t);
+    lists[t.status]?.appendChild(el);
+  });
+}
+
+document.getElementById("addBtn").addEventListener("click", async ()=>{
+  const title = document.getElementById("newTitle").value.trim();
+  const due = document.getElementById("newDue").value || null;
+  if(!title){ alert("Enter title"); return; }
+  await fetch(API_BASE + "/tasks", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({title, due_date: due, status: "todo"})
+  });
+  document.getElementById("newTitle").value = "";
+  document.getElementById("newDue").value = "";
+  loadAndRender();
+});
+
+// Setup dragover/drop for columns
+document.querySelectorAll(".column").forEach(col=>{
+  col.addEventListener("dragover", ev => {
+    ev.preventDefault();
+    col.classList.add("over");
+  });
+  col.addEventListener("dragleave", () => col.classList.remove("over"));
+  col.addEventListener("drop", async ev => {
+    ev.preventDefault();
+    col.classList.remove("over");
+    const id = ev.dataTransfer.getData("text/plain");
+    const newStatus = col.dataset.status;
+    // update on server
+    await fetch(`${API_BASE}/tasks/${id}`, {
+      method: "PUT",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({status: newStatus})
+    });
+    loadAndRender();
+  });
+});
+
+document.getElementById("hideCompleted").addEventListener("change", loadAndRender);
+
+// initial load
+loadAndRender();
+</script>
+</body>
+</html>
