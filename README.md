@@ -14,7 +14,7 @@ Worked on the Features:
 1. Create a Python virtualenv and install:
 ```bash
 python -m venv venv
-source venv/bin/activate   # on Windows: venv\Scripts\activate
+source venv/bin/activate 
 pip install -r backend/requirements.txt
 ```
 2. Start the backend from project root:
