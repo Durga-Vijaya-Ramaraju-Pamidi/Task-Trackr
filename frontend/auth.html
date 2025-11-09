@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>TaskTracker — Login</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="auth">
+  <div class="auth-container">
+    <h2>Login / Register</h2>
+    <select id="roleSelect" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc;">
+      <option value="user">👤 Login as User</option>
+      <option value="admin">🔑 Login as Admin</option>
+    </select>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn" id="loginBtn">Login</button>
+      <button class="btn secondary" id="registerBtn">Register</button>
+    </div>
+    <p id="msg" class="small" style="margin-top:8px;"></p>
+  </div>
+
+<script>
+const API_BASE = "/api";
+
+function showMsg(txt, color){
+  const el = document.getElementById("msg");
+  el.textContent = txt;
+  el.style.color = color || "red";
+}
+
+// Registration
+document.getElementById("registerBtn").addEventListener("click", async ()=>{
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value.trim();
+  const role = document.getElementById("roleSelect").value;
+  if(!u || !p){ showMsg("Username & password required"); return; }
+
+  const res = await fetch(API_BASE + "/register", {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({username: u, password: p, is_admin: role === "admin"})
+  });
+  const j = await res.json();
+  if(res.ok){ showMsg("Registered successfully — please login", "green"); }
+  else { showMsg(j.message || "Error"); }
+});
+
+// Login
+document.getElementById("loginBtn").addEventListener("click", async ()=>{
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value.trim();
+  if(!u || !p){ showMsg("Username & password required"); return; }
+
+  const res = await fetch(API_BASE + "/login", {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({username: u, password: p})
+  });
+  const j = await res.json();
+  if(res.ok){
+    localStorage.setItem("username", u);
+    localStorage.setItem("is_admin", j.is_admin);
+    showMsg("Login successful — redirecting...", "green");
+    setTimeout(()=>{
+      if (j.is_admin) window.location.href = "admin_logs.html";
+      else window.location.href = "index.html";
+    }, 1000);
+  } else {
+    showMsg(j.message || "Login failed");
+  }
+});
+</script>
+</body>
+</html>
