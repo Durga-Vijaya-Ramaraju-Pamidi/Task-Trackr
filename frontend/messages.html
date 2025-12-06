@@ -1,0 +1,463 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>TaskTracker — Messages</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --blue-600: #2563eb;
+      --blue-700: #1d4ed8;
+      --muted: #6b7280;
+      --bg: #f3f6fb;
+      --card: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(180deg,#eef6ff,#f3f6fb);
+      color: #0f172a;
+      padding: 24px;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    .header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; }
+    h1 { margin:0; font-size:20px; color:var(--blue-700); }
+    .back { background:#6b7280; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
+    .card {
+      background: var(--card);
+      border-radius:14px;
+      padding:18px;
+      box-shadow: 0 10px 30px rgba(15,23,42,0.06);
+    }
+
+    .icon-row {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      padding:8px;
+      border-radius:10px;
+      background: linear-gradient(90deg, rgba(37,99,235,0.06), rgba(29,78,216,0.04));
+    }
+    .icon {
+      padding:8px 12px;
+      border-radius:8px;
+      cursor:pointer;
+      color: var(--muted);
+      font-weight:600;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      user-select:none;
+    }
+    .icon.active {
+      background: linear-gradient(90deg, var(--blue-600), var(--blue-700));
+      color: white;
+      box-shadow: 0 6px 18px rgba(37,99,235,0.18);
+    }
+
+    .layout { display:grid; grid-template-columns: 1fr 320px; gap:18px; margin-top:12px; }
+    @media (max-width:920px){ .layout{ grid-template-columns: 1fr; } }
+
+    /* panes */
+    .pane { display:none; }
+    .pane.active { display:block; }
+
+    /* message item */
+    .msg {
+      background: linear-gradient(180deg,#fff,#fbfdff);
+      border-radius:12px;
+      padding:12px 14px;
+      margin-bottom:12px;
+      border:1px solid rgba(15,23,42,0.03);
+      box-shadow:0 6px 18px rgba(15,23,42,0.03);
+      cursor:pointer;
+    }
+
+    .msg-header { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .msg-from { font-weight:700; color:#0f172a; }
+    .msg-date { color:var(--muted); font-size:13px; white-space:nowrap; text-align:right; margin-left:8px; }
+
+    .msg-subject { margin-top:8px; font-weight:700; color:#0b1220; }
+    .msg-preview { margin-top:6px; color:#334155; font-size:14px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+
+    /* viewer */
+    .viewer {
+      margin-top:8px;
+      padding:14px;
+      border-radius:10px;
+      background: linear-gradient(180deg,#ffffff,#f8fbff);
+      border:1px solid rgba(15,23,42,0.04);
+    }
+    .viewer .meta { color:var(--muted); font-size:13px; margin-bottom:10px; display:flex; justify-content:space-between; }
+    .viewer .body { color:#334155; white-space:pre-wrap; }
+
+    .reply-box { margin-top:12px; background:white; padding:10px; border-radius:8px; border:1px solid rgba(15,23,42,0.03); }
+
+    input, select, textarea, button {
+      font-family:inherit;
+      font-size:14px;
+      border-radius:8px;
+    }
+    input, select { padding:10px; border:1px solid #e6eefc; width:100%; box-sizing:border-box; }
+    textarea { padding:10px; min-height:100px; width:100%; border:1px solid #e6eefc; resize:vertical; }
+
+    .btn { background:var(--blue-600); color:white; border:none; padding:10px 12px; border-radius:8px; cursor:pointer; }
+    .btn.secondary { background:#f3f4f6; color:#0f172a; border:1px solid rgba(15,23,42,0.04); }
+    .small { font-size:13px; color:var(--muted); }
+
+    .panel-right { padding:12px; border-radius:10px; background:linear-gradient(180deg,#fff,#fbfdff); border:1px solid rgba(15,23,42,0.03); }
+    .panel-right button { width:100%; margin-bottom:8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>TaskTracker — Messages</h1>
+      <div>
+        <button class="back" onclick="location.href='/index.html'">⬅ Back</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="icon-row" role="tablist" aria-label="Message tabs">
+          <div class="icon active" id="iconSend" onclick="switchPane('send')" role="tab" aria-selected="true">✉️ <span style="margin-left:6px">Send</span></div>
+          <div class="icon" id="iconInbox" onclick="switchPane('inbox')" role="tab" aria-selected="false">📥 <span style="margin-left:6px">Inbox</span></div>
+          <div class="icon" id="iconSent" onclick="switchPane('sent')" role="tab" aria-selected="false">📤 <span style="margin-left:6px">Sent</span></div>
+        </div>
+        <div class="small">Signed in as <strong id="meSmall"></strong></div>
+      </div>
+
+      <div class="layout">
+        <!-- left main column -->
+        <div>
+          <!-- SEND pane -->
+          <div class="pane active" id="pane-send">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <strong>Compose</strong>
+              <div class="small">Quick message</div>
+            </div>
+
+            <div style="margin-top:10px">
+              <label class="small">Recipient</label>
+              <select id="recipient"><option>Loading…</option></select>
+
+              <label class="small" style="margin-top:10px">Subject</label>
+              <input id="subject" placeholder="Subject" />
+
+              <label class="small" style="margin-top:10px">Message</label>
+              <textarea id="body" placeholder="Write your message..."></textarea>
+
+              <div style="display:flex;gap:10px;margin-top:12px">
+                <button class="btn" id="sendBtn">Send</button>
+                <button class="btn secondary" onclick="clearCompose()">Clear</button>
+              </div>
+              <div id="sendResult" style="margin-top:8px"></div>
+            </div>
+          </div>
+
+          <!-- INBOX pane -->
+          <div class="pane" id="pane-inbox">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong>Inbox</strong>
+              <div class="small" id="inboxCount"></div>
+            </div>
+
+            <div id="inboxList" style="margin-top:12px">
+              <div class="small">Loading inbox...</div>
+            </div>
+
+            <!-- inline viewer (appears under clicked message) -->
+            <div id="viewerContainer"></div>
+          </div>
+
+          <!-- SENT pane -->
+          <div class="pane" id="pane-sent">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong>Sent</strong>
+              <div class="small" id="sentCount"></div>
+            </div>
+
+            <div id="sentList" style="margin-top:12px">
+              <div class="small">Loading sent messages...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- right column -->
+        <div class="panel-right">
+          <div style="margin-bottom:10px"><strong>Quick actions</strong></div>
+          <button class="btn secondary" onclick="switchPane('send')">Compose</button>
+          <button class="btn secondary" onclick="switchPane('inbox')">Open Inbox</button>
+          <button class="btn secondary" onclick="switchPane('sent')">Open Sent</button>
+          <hr style="margin:12px 0;border:none;border-top:1px solid rgba(15,23,42,0.03)" />
+          <div class="small">Tip: click a message to open and reply inline.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* Configuration */
+const API_BASE = "/api";
+const currentUser = localStorage.getItem("username") || "";
+document.getElementById("meSmall").textContent = currentUser || "guest";
+if (!currentUser) location.href = "/auth.html";
+
+/* Utilities */
+function el(tag, attrs={}, children=""){ const e=document.createElement(tag); for(const k in attrs) e.setAttribute(k, attrs[k]); if(children) e.innerHTML = children; return e; }
+function safe(s){ return String(s||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+/* Tab switching */
+function switchPane(name){
+  document.querySelectorAll(".pane").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".icon").forEach(i => i.classList.remove("active"));
+
+  const pane = document.getElementById(`pane-${name}`);
+  if (pane) pane.classList.add("active");
+
+  const icon = document.getElementById(`icon${capitalize(name)}`);
+  if (icon) icon.classList.add("active");
+
+  if (name === "inbox") loadInbox();
+  if (name === "sent") loadSent();
+}
+
+/* Load recipients (for compose) */
+async function loadRecipients(){
+  const sel = document.getElementById("recipient");
+  sel.innerHTML = "<option value=''>-- Select recipient --</option>";
+  try {
+    const res = await fetch(`${API_BASE}/users`);
+    const j = await res.json();
+    const list = j.data || [];
+    list.forEach(u => {
+      if (u.username !== currentUser) {
+        const opt = document.createElement("option");
+        opt.value = u.username;
+        opt.textContent = u.username + (u.is_admin ? " (admin)" : "");
+        sel.appendChild(opt);
+      }
+    });
+  } catch(err) {
+    console.error("loadRecipients", err);
+    sel.innerHTML = "<option>Unable to load</option>";
+  }
+}
+loadRecipients();
+
+/* LOAD INBOX: GET /api/messages?username=... (server returns { messages: [...] }) */
+async function loadInbox(){
+  const listWrap = document.getElementById("inboxList");
+  const viewerWrap = document.getElementById("viewerContainer");
+  listWrap.innerHTML = "<div class='small'>Loading inbox...</div>";
+  viewerWrap.innerHTML = "";
+  document.getElementById("inboxCount").textContent = "";
+
+  try {
+    const res = await fetch(`${API_BASE}/messages?username=${encodeURIComponent(currentUser)}`);
+    if (!res.ok) {
+      listWrap.innerHTML = "<div class='small'>Failed to load inbox</div>";
+      return;
+    }
+    const j = await res.json();
+    const messages = j.messages || j.data || [];
+    // The backend already filtered recipient; if not, you could filter here.
+    const inbox = Array.isArray(messages) ? messages : [];
+
+    listWrap.innerHTML = "";
+    if (inbox.length === 0) {
+      listWrap.innerHTML = "<div class='small'>No messages</div>";
+      document.getElementById("inboxCount").textContent = "0";
+      return;
+    }
+    document.getElementById("inboxCount").textContent = inbox.length;
+
+    inbox.forEach(m => {
+      const msgDiv = el("div", {class:"msg"});
+      msgDiv.innerHTML = `
+        <div class="msg-header">
+          <div class="msg-from">From: ${safe(m.sender)}</div>
+          <div class="msg-date">${safe(m.timestamp || "")}</div>
+        </div>
+        <div class="msg-subject">${safe(m.subject || "(No subject)")}</div>
+        <div class="msg-preview">${safe(m.body || "")}</div>
+      `;
+      msgDiv.addEventListener("click", () => openViewer(m));
+      listWrap.appendChild(msgDiv);
+    });
+
+  } catch(err) {
+    console.error("loadInbox error", err);
+    listWrap.innerHTML = "<div class='small'>Error loading inbox</div>";
+  }
+}
+
+/* OPEN VIEWER: expands the clicked message and shows reply box under it */
+function openViewer(message) {
+  const viewerWrap = document.getElementById("viewerContainer");
+  // build viewer HTML (reply box included)
+  viewerWrap.innerHTML = `
+    <div class="viewer" id="viewerBox">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:700">${safe(message.subject || "(No subject)")}</div>
+        <div class="small">${safe(message.timestamp || "")}</div>
+      </div>
+      <div class="small" style="margin-top:8px">From: ${safe(message.sender)}</div>
+      <div class="body" style="margin-top:12px">${safe(message.body)}</div>
+
+      <div class="reply-box" style="margin-top:12px">
+        <div style="font-weight:700;margin-bottom:6px">Reply</div>
+        <textarea id="replyText" placeholder="Write your reply..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" id="sendReplyBtn">Send Reply</button>
+          <button class="btn secondary" onclick="closeViewer()">Close</button>
+        </div>
+        <div id="replyResult" style="margin-top:8px"></div>
+      </div>
+    </div>
+  `;
+  // attach send handler
+  document.getElementById("sendReplyBtn").addEventListener("click", () => {
+    sendReply(message.sender, message.subject);
+  });
+  // scroll viewer into view
+  viewerWrap.scrollIntoView({behavior:"smooth", block:"start"});
+}
+async function markAllRead() {
+  const username = localStorage.getItem("username");
+  const res = await fetch(`/api/messages?username=${username}`);
+  const data = await res.json();
+
+  data.messages.forEach(async msg => {
+    if (!msg.read) {
+      await fetch(`/api/messages/${msg.id}/read`, { method: "PUT" });
+    }
+  });
+}
+
+// When entering messaging screen
+markAllRead();
+function closeViewer() {
+  document.getElementById("viewerContainer").innerHTML = "";
+}
+
+/* SEND REPLY — POST /api/messages/send */
+async function sendReply(recipient, origSubject) {
+  const text = document.getElementById("replyText").value.trim();
+  const resultEl = document.getElementById("replyResult");
+  resultEl.textContent = "";
+  if (!text) { resultEl.style.color="red"; resultEl.textContent = "Please write a reply."; return; }
+
+  try {
+    const res = await fetch(`${API_BASE}/messages/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sender: currentUser,
+        recipient,
+        subject: origSubject ? `Re: ${origSubject}` : `Re:`,
+        body: text
+      })
+    });
+    const j = await res.json();
+    if (res.ok) {
+      resultEl.style.color = "green";
+      resultEl.textContent = "Reply sent.";
+      document.getElementById("replyText").value = "";
+      // refresh sent tab data if user is currently viewing sent
+      if (document.getElementById("pane-sent").classList.contains("active")) loadSent();
+    } else {
+      resultEl.style.color = "red";
+      resultEl.textContent = j.message || "Failed to send reply";
+    }
+  } catch (err) {
+    console.error("sendReply", err);
+    resultEl.style.color = "red";
+    resultEl.textContent = "Network error";
+  }
+}
+
+/* LOAD SENT messages from /api/messages/sent?username=... */
+async function loadSent(){
+  const wrap = document.getElementById("sentList");
+  wrap.innerHTML = "<div class='small'>Loading sent messages...</div>";
+  document.getElementById("sentCount").textContent = "";
+
+  try {
+    const res = await fetch(`${API_BASE}/messages/sent?username=${encodeURIComponent(currentUser)}`);
+    if (!res.ok) {
+      wrap.innerHTML = "<div class='small'>Failed to load sent messages</div>";
+      return;
+    }
+    const j = await res.json();
+    const messages = j.messages || j.data || [];
+
+    wrap.innerHTML = "";
+    if (!Array.isArray(messages) || messages.length === 0) {
+      wrap.innerHTML = "<div class='small'>No sent messages</div>";
+      document.getElementById("sentCount").textContent = "0";
+      return;
+    }
+    document.getElementById("sentCount").textContent = messages.length;
+
+    messages.forEach(m => {
+      const dv = el("div", {class:"msg"});
+      dv.innerHTML = `
+        <div class="msg-header">
+          <div class="msg-from">To: ${safe(m.recipient || m.to || "")}</div>
+          <div class="msg-date">${safe(m.timestamp || "")}</div>
+        </div>
+        <div class="msg-subject">${safe(m.subject || "(No subject)")}</div>
+        <div class="msg-preview">${safe(m.body || "")}</div>
+      `;
+      wrap.appendChild(dv);
+    });
+
+  } catch (err) {
+    console.error("loadSent", err);
+    wrap.innerHTML = "<div class='small'>Error loading sent messages</div>";
+  }
+}
+
+/* SEND new composed message (POST /api/messages/send) */
+document.getElementById("sendBtn").addEventListener("click", async () => {
+  const recipient = document.getElementById("recipient").value;
+  const subject = document.getElementById("subject").value.trim();
+  const body = document.getElementById("body").value.trim();
+  const out = document.getElementById("sendResult");
+  out.textContent = ""; out.style.color = "";
+
+  if (!recipient || !subject || !body) {
+    out.style.color = "red"; out.textContent = "Please fill recipient, subject and message.";
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/messages/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sender: currentUser, recipient, subject, body })
+    });
+    const j = await res.json();
+    if (res.ok) {
+      out.style.color = "green"; out.textContent = "Message sent.";
+      document.getElementById("subject").value = ""; document.getElementById("body").value = ""; document.getElementById("recipient").value = "";
+      // refresh sent view if visible
+      if (document.getElementById("pane-sent").classList.contains("active")) loadSent();
+    } else {
+      out.style.color = "red"; out.textContent = j.message || "Failed to send";
+    }
+  } catch (err) {
+    console.error("send", err); out.style.color = "red"; out.textContent = "Network error";
+  }
+});
+
+function clearCompose(){ document.getElementById("subject").value = ""; document.getElementById("body").value = ""; document.getElementById("recipient").value = ""; }
+
+/* initial view */
+switchPane('send');
+</script>
+</body>
+</html>

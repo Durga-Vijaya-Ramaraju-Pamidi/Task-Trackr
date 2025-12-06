@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Admin — Create & Assign Tasks</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background:#f6f8fb; }
+    .card { background:white; padding:16px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.06); max-width:700px; margin:0 auto;}
+    label { display:block; margin-top:8px; font-weight:600; }
+    input, select, textarea, button { width:100%; padding:8px; margin-top:6px; border-radius:6px; border:1px solid #ccc; box-sizing:border-box;}
+    .row { display:flex; gap:10px; }
+    .row > * { flex:1; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Create / Assign Task (Admin)</h2>
+    <div>
+      <label>Creator (admin username)</label>
+      <input id="creator" placeholder="admin username (auto-filled from session)" />
+      <label>Title</label>
+      <input id="title" placeholder="Task title" />
+      <label>Assign To (user)</label>
+      <select id="assignee"></select>
+      <label>Due Date</label>
+      <input id="duedate" type="date" />
+      <label>Status</label>
+      <select id="status">
+        <option value="todo">To Do</option>
+        <option value="in-progress">In Progress</option>
+        <option value="done">Done</option>
+      </select>
+      <div style="margin-top:12px;">
+        <button id="createBtn">Create & Assign Task</button>
+      </div>
+      <div id="result" style="margin-top:10px;color:green"></div>
+    </div>
+  </div>
+
+<script>
+const API_BASE = "/api";
+
+// fill creator field from localStorage
+const currentUser = localStorage.getItem("username");
+if (!currentUser || localStorage.getItem("is_admin") !== "true") {
+  alert("Admin access required");
+  window.location.href = "auth.html";
+}
+document.getElementById("creator").value = currentUser;
+
+// populate assignee select
+async function loadUsers() {
+  const res = await fetch(`${API_BASE}/users`);
+  const json = await res.json();
+  const sel = document.getElementById("assignee");
+  sel.innerHTML = "<option value=''>-- Select user (optional) --</option>";
+  (json.data || []).forEach(u => {
+    if (u.username !== currentUser) {
+      const opt = document.createElement("option");
+      opt.value = u.username;
+      opt.textContent = u.username + (u.is_admin ? " (admin)" : "");
+      sel.appendChild(opt);
+    }
+  });
+}
+loadUsers();
+
+document.getElementById("createBtn").addEventListener("click", async ()=>{
+  const payload = {
+    creator: document.getElementById("creator").value,
+    title: document.getElementById("title").value,
+    assigned_to: document.getElementById("assignee").value || null,
+    due_date: document.getElementById("duedate").value || null,
+    status: document.getElementById("status").value
+  };
+  const res = await fetch(`${API_BASE}/admin/tasks`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+  const j = await res.json();
+  if (res.ok) {
+    document.getElementById("result").textContent = "Task created (ID: " + j.data.id + ")";
+    document.getElementById("title").value = "";
+    document.getElementById("duedate").value = "";
+  } else {
+    document.getElementById("result").style.color = "red";
+    document.getElementById("result").textContent = j.message || "Error";
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>TaskTracker — Login</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body.auth {
+      background: linear-gradient(180deg,#eef2ff,#ffffff);
+      font-family: "Segoe UI", sans-serif;
+      height: 100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin:0;
+    }
+    .auth-container {
+      width: 380px;
+      background: white;
+      padding: 22px;
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(16,24,40,0.08);
+    }
+    .auth-container h2 { margin:0 0 12px 0; }
+    input, select {
+      width:100%;
+      padding:10px;
+      margin:8px 0;
+      border-radius:6px;
+      border:1px solid #e6eef8;
+      box-sizing:border-box;
+    }
+    .small { font-size:13px; color:#475569; }
+    .btn { padding:10px 12px; border-radius:6px; border:none; background:#2563eb; color:white; cursor:pointer; }
+    .btn.secondary { background:#e5e7eb; color:#111827; }
+    #msg { min-height:18px; margin-top:8px; }
+  </style>
+</head>
+<body class="auth">
+  <div class="auth-container">
+    <h2>TaskTracker — Login / Register</h2>
+    <select id="roleSelect">
+      <option value="user">Login as User</option>
+      <option value="admin">Login as Admin</option>
+    </select>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn" id="loginBtn">Login</button>
+      <button class="btn secondary" id="registerBtn">Register</button>
+    </div>
+    <p id="msg" class="small"></p>
+  </div>
+
+<script>
+const API_BASE = "/api";
+
+function showMsg(txt, color){
+  const el = document.getElementById("msg");
+  el.textContent = txt;
+  el.style.color = color || "#dc2626";
+}
+
+document.getElementById("registerBtn").addEventListener("click", async ()=>{
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value.trim();
+  const role = document.getElementById("roleSelect").value;
+  if(!u || !p){ showMsg("Username & password required"); return; }
+  const is_admin = role === "admin";
+  const res = await fetch(`${API_BASE}/register`, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({username: u, password: p, is_admin})
+  });
+  const j = await res.json();
+  if (res.ok) showMsg("Registered. Please login.", "green");
+  else showMsg(j.message || "Register failed");
+});
+
+document.getElementById("loginBtn").addEventListener("click", async ()=>{
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value.trim();
+  const role = document.getElementById("roleSelect").value;
+  if(!u || !p){ showMsg("Username & password required"); return; }
+  const res = await fetch(`${API_BASE}/login`, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({username: u, password: p})
+  });
+  const j = await res.json();
+  if (res.ok) {
+    // store username and admin flag as strings so frontend checks are reliable
+    localStorage.setItem("username", u);
+    localStorage.setItem("is_admin", j.is_admin ? "true":"false");
+    showMsg("Login successful — redirecting...", "green");
+    setTimeout(()=>{
+      if (j.is_admin) window.location.href = "admin_dashboard.html";
+      else window.location.href = "index.html";
+    }, 700);
+  } else {
+    showMsg(j.message || "Login failed");
+  }
+});
+</script>
+</body>
+</html>

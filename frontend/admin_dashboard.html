@@ -1,0 +1,501 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>TaskTracker — Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg-0: #eef6ff;
+      --bg-1: #e6f0ff;
+      --blue-600: #2563eb;
+      --blue-700: #1d4ed8;
+      --muted: #6b7280;
+      --card: #ffffff;
+      --glass: rgba(255,255,255,0.6);
+      --glass-2: rgba(255,255,255,0.85);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Inter, "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial;
+      background: radial-gradient(1200px 400px at 10% 10%, rgba(37,99,235,0.06), transparent),
+                  linear-gradient(180deg, #f7fbff 0%, #eef6ff 40%, #f3f8ff 100%);
+      color:#0f172a;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:20px;
+    }
+
+    /* Topbar */
+    .topbar{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:14px 20px;
+      border-radius:14px;
+      background: linear-gradient(90deg, rgba(37,99,235,0.9), rgba(29,78,216,0.9));
+      color:white;
+      box-shadow: 0 12px 30px rgba(37,99,235,0.12);
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+    }
+    .logo{
+      width:44px; height:44px; border-radius:10px; background:rgba(255,255,255,0.12); display:flex;align-items:center;justify-content:center;
+      font-weight:800; color:white;
+      box-shadow: inset 0 -6px 12px rgba(0,0,0,0.06);
+    }
+    .title{ font-weight:700; font-size:18px; letter-spacing:0.2px; }
+    .top-right{ margin-left:auto; display:flex; gap:10px; align-items:center; }
+
+    .small-btn{
+      background: rgba(255,255,255,0.12); border:none; color:white; padding:8px 10px; border-radius:8px; cursor:pointer;
+      backdrop-filter: blur(4px);
+    }
+
+    .username{
+      cursor:pointer;
+      padding:8px 10px;
+      border-radius:10px;
+      background: rgba(255,255,255,0.08);
+      display:flex; gap:10px; align-items:center;
+    }
+
+    /* Layout */
+    .container{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:18px;
+      margin-top:20px;
+    }
+    @media (max-width:980px){
+      .container{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      background: linear-gradient(180deg, var(--glass), var(--glass-2));
+      border-radius:14px;
+      padding:16px;
+      box-shadow: 0 10px 30px rgba(2,6,23,0.06);
+      border: 1px solid rgba(15,23,42,0.04);
+    }
+
+    /* Left panel */
+    .left{ min-height:520px; }
+    .panel h3{ margin:8px 0 12px 0; font-size:16px; }
+    .icon-row{ display:flex; gap:10px; margin-bottom:12px; }
+    .icon{
+      width:48px; height:48px; border-radius:10px; background:linear-gradient(180deg,#f0f6ff,#e8f2ff);
+      display:flex;align-items:center;justify-content:center; font-size:18px; cursor:pointer; color:var(--muted);
+      transition: all .18s ease;
+      border: 1px solid rgba(37,99,235,0.06);
+    }
+    .icon:hover{ transform:translateY(-3px); box-shadow: 0 8px 18px rgba(37,99,235,0.06); }
+    .icon.active{ background: linear-gradient(90deg,var(--blue-600),var(--blue-700)); color:white; box-shadow:0 10px 30px rgba(29,78,216,0.12); }
+
+    label.small{ display:block; font-size:13px; color:var(--muted); margin-top:10px; }
+    input, select, textarea{
+      width:100%; padding:10px; border-radius:10px; border:1px solid rgba(15,23,42,0.05);
+      margin-top:8px; background:rgba(255,255,255,0.9);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+      font-size:14px;
+    }
+    textarea{ min-height:120px; resize:vertical; }
+
+    .btn-primary{
+      width:100%; padding:12px; border-radius:10px; border:none; color:white;
+      background: linear-gradient(90deg, var(--blue-600), var(--blue-700));
+      margin-top:12px; cursor:pointer; font-weight:600; box-shadow:0 10px 24px rgba(37,99,235,0.12);
+    }
+
+    .msg-list{ max-height:220px; overflow:auto; margin-top:12px; padding-right:6px; }
+    .msg-item{
+      background:linear-gradient(180deg,#ffffff,#fbfdff); border-radius:10px; padding:10px; margin-bottom:8px;
+      border:1px solid rgba(15,23,42,0.03); box-shadow:0 6px 18px rgba(2,6,23,0.03);
+    }
+    .msg-item .meta{ display:flex; justify-content:space-between; gap:8px; align-items:center; }
+    .msg-item .meta .from{ font-weight:700; color:#0f172a; }
+    .msg-item .meta .time{ color:var(--muted); font-size:13px; }
+    .msg-item .subject{ margin-top:6px; color:#0b1220; font-weight:600; }
+    .msg-item .body{ margin-top:6px; color:#475569; font-size:14px; }
+
+    /* right panel */
+    .right{ min-height:520px; display:flex; flex-direction:column; gap:14px; }
+
+    .card-section{ background:white; padding:14px; border-radius:12px; box-shadow:0 8px 24px rgba(2,6,23,0.04); border:1px solid rgba(15,23,42,0.03); }
+    .card-section h4{ margin:0 0 8px 0; }
+    .recent-list{ max-height:220px; overflow:auto; margin-top:8px; padding-right:6px; }
+    .recent-item{ padding:10px; border-radius:10px; background:linear-gradient(180deg,#fff,#fafcff); border:1px solid rgba(15,23,42,0.03); margin-bottom:8px; }
+
+    /* dropdown menu */
+    .dropdown{ position:relative; }
+    .menu{ position:absolute; right:0; top:46px; background:white; border-radius:10px; box-shadow:0 10px 30px rgba(2,6,23,0.12); display:none; min-width:140px; overflow:hidden; }
+    .menu button{ padding:10px 12px; border:none; width:100%; text-align:left; background:transparent; cursor:pointer; }
+    .menu button:hover{ background:#f1f5f9; }
+
+    .small{ font-size:13px; color:var(--muted); }
+    .muted{ color:var(--muted); }
+
+    /* subtle background shapes */
+    .bg-shape{
+      position: absolute; right: 32px; top: 120px; width:220px; height:220px; background:linear-gradient(180deg,rgba(37,99,235,0.06),transparent); border-radius:48px; filter: blur(30px); z-index: -1;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">TT</div>
+      <div class="title">TaskTracker — Admin Dashboard</div>
+    </div>
+
+    <div class="top-right">
+      <button class="small-btn" onclick="viewLogs()" title="View Logs">📜 Logs</button>
+      <div class="dropdown">
+        <div class="username" id="usernameBtn" onclick="toggleMenu()">
+          <span id="topUser">Admin</span> ▾
+        </div>
+        <div class="menu" id="userMenu" role="menu" aria-hidden="true">
+          <button onclick="viewProfile()">Profile</button>
+          <button onclick="logout()">Logout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" style="position:relative">
+    <div class="bg-shape" aria-hidden="true"></div>
+
+    <!-- left: messaging panel -->
+    <div class="panel left">
+      <h3>Messaging</h3>
+
+      <div class="icon-row" role="tablist" aria-label="Messaging tabs">
+        <div class="icon active" id="iconSend" title="Send" onclick="switchPane('send')">✉️</div>
+        <div class="icon" id="iconInbox" title="Inbox" onclick="switchPane('inbox')">📥</div>
+        <div class="icon" id="iconSent" title="Sent" onclick="switchPane('sent')">📤</div>
+      </div>
+
+      <!-- send pane -->
+      <div id="pane-send">
+        <label class="small">Send to</label>
+        <select id="msgRecipient"></select>
+
+        <label class="small">Subject</label>
+        <input id="msgSubject" placeholder="Subject"/>
+
+        <label class="small">Message</label>
+        <textarea id="msgBody" placeholder="Write your message..."></textarea>
+
+        <button class="btn-primary" id="sendBtn">Send Message</button>
+      </div>
+
+      <!-- inbox -->
+      <div id="pane-inbox" style="display:none;">
+        <h3>Inbox</h3>
+        <div id="inboxList" class="msg-list" aria-live="polite"></div>
+      </div>
+
+      <!-- sent -->
+      <div id="pane-sent" style="display:none;">
+        <h3>Sent</h3>
+        <div id="sentList" class="msg-list" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <!-- right: create & assign task -->
+    <div class="panel right">
+      <div class="card-section">
+        <h4>Create & Assign Task</h4>
+        <label class="small">Title</label>
+        <input id="taskTitle" placeholder="Task title" />
+        <label class="small">Due Date</label>
+        <input id="taskDueDate" type="date" />
+        <label class="small">Assign to</label>
+        <select id="assignTo"></select>
+        <button class="btn-primary" id="createTask">Create & Assign</button>
+      </div>
+
+      <div class="card-section">
+        <h4>Recent Activity</h4>
+        <div id="recentActivity" class="recent-list"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // API base
+  const API = "/api";
+
+  // set username from localStorage
+  const username = localStorage.getItem("username") || "Admin";
+  document.getElementById("topUser").textContent = username;
+
+  // toggle user menu
+  function toggleMenu(){
+    const m = document.getElementById("userMenu");
+    m.style.display = (m.style.display === "block") ? "none" : "block";
+  }
+  document.addEventListener("click", (e) => {
+    if (!document.getElementById("usernameBtn").contains(e.target)) {
+      document.getElementById("userMenu").style.display = "none";
+    }
+  });
+
+  function viewLogs(){ window.location.href = "admin_logs.html"; }
+  function logout(){ localStorage.clear(); window.location.href = "auth.html"; }
+  function viewProfile(){ alert("Profile page not implemented."); }
+
+  // tab switching
+  function switchPane(name){
+    // show/hide panes
+    document.getElementById("pane-send").style.display = (name==='send') ? '' : 'none';
+    document.getElementById("pane-inbox").style.display = (name==='inbox') ? '' : 'none';
+    document.getElementById("pane-sent").style.display = (name==='sent') ? '' : 'none';
+
+    // set active icon
+    document.getElementById("iconSend").classList.toggle("active", name==='send');
+    document.getElementById("iconInbox").classList.toggle("active", name==='inbox');
+    document.getElementById("iconSent").classList.toggle("active", name==='sent');
+
+    // load data when needed
+    if (name === 'inbox') loadInbox();
+    if (name === 'sent') loadSent();
+  }
+
+  // load users into selects
+  async function loadUsers(){
+    try {
+      const res = await fetch(API + "/users");
+      const j = await res.json();
+      const assignSel = document.getElementById("assignTo");
+      const msgSel = document.getElementById("msgRecipient");
+      assignSel.innerHTML = `<option value="">-- Unassigned --</option>`;
+      msgSel.innerHTML = `<option value="">-- Select user --</option>`;
+      (j.data || []).forEach(u=>{
+        assignSel.innerHTML += `<option value="${u.username}">${u.username}${u.is_admin?" (admin)":""}</option>`;
+        msgSel.innerHTML += `<option value="${u.username}">${u.username}${u.is_admin?" (admin)":""}</option>`;
+      });
+    } catch(e){
+      console.error("loadUsers", e);
+      document.getElementById("assignTo").innerHTML = `<option>Unable to load users</option>`;
+      document.getElementById("msgRecipient").innerHTML = `<option>Unable to load users</option>`;
+    }
+  }
+  loadUsers();
+
+  // send message
+  document.getElementById("sendBtn").addEventListener("click", async ()=>{
+    const recipient = document.getElementById("msgRecipient").value;
+    const subject = document.getElementById("msgSubject").value.trim();
+    const body = document.getElementById("msgBody").value.trim();
+    if(!recipient || !body){ alert("Select recipient and enter message"); return; }
+    try{
+      const res = await fetch(API + "/messages/send", {
+        method:"POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ sender: username, recipient, subject, body })
+      });
+      if(res.ok){
+        alert("Message sent");
+        document.getElementById("msgSubject").value=""; document.getElementById("msgBody").value="";
+        // refresh sent list if currently visible
+        if(document.getElementById("pane-sent").style.display !== "none") loadSent();
+      } else {
+        const j = await res.json();
+        alert(j.message || "Send failed");
+      }
+    } catch(err){
+      console.error("send message", err);
+      alert("Network or server error");
+    }
+  });
+
+  // create task
+  document.getElementById("createTask").addEventListener("click", async ()=>{
+    const title = document.getElementById("taskTitle").value.trim();
+    const due_date = document.getElementById("taskDueDate").value || null;
+    const assigned_to = document.getElementById("assignTo").value || null;
+    if(!title){ alert("Enter title"); return; }
+    try{
+      const res = await fetch(API + "/admin/tasks", {
+        method:"POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ admin: username, title, due_date, assigned_to })
+      });
+      if(res.ok){
+        alert("Task created");
+        document.getElementById("taskTitle").value = "";
+        loadRecent();
+      } else {
+        const j = await res.json();
+        alert(j.message || "Failed");
+      }
+    } catch(e){
+      console.error("createTask", e);
+      alert("Server error");
+    }
+  });
+
+  // load inbox (recipient messages)
+  async function loadInbox(){
+    const res = await fetch(API + "/messages?username=" + encodeURIComponent(username));
+    const j = await res.json();
+    const el = document.getElementById("inboxList");
+    el.innerHTML = "";
+    const msgs = j.messages || j.data || [];
+    if(!msgs.length){
+      el.innerHTML = `<div class="small muted">No messages</div>`;
+      return;
+    }
+    msgs.forEach(m=>{
+      const d = document.createElement("div");
+      d.className = "msg-item";
+      d.innerHTML = `
+        <div class="meta">
+          <div class="from">${escapeHtml(m.sender)}</div>
+          <div class="time">${escapeHtml(m.timestamp||'')}</div>
+        </div>
+        <div class="subject">${escapeHtml(m.subject || '(No subject)')}</div>
+        <div class="body">${escapeHtml(m.body)}</div>
+      `;
+      d.addEventListener("click", ()=> openMessageDetail(m));
+      el.appendChild(d);
+    });
+  }
+
+  // load sent - use API endpoint if exists, otherwise try server logs fallback
+  async function loadSent(){
+    const el = document.getElementById("sentList");
+    el.innerHTML = `<div class="small muted">Loading...</div>`;
+    try{
+      const res = await fetch(API + "/messages/sent?username=" + encodeURIComponent(username));
+      if(res.ok){
+        const j = await res.json();
+        const msgs = j.messages || j.data || [];
+        el.innerHTML = "";
+        if(!msgs.length){ el.innerHTML = `<div class="small muted">No sent messages</div>`; return; }
+        msgs.forEach(m=>{
+          const d = document.createElement("div");
+          d.className = "msg-item";
+          d.innerHTML = `
+            <div class="meta"><div class="from">To: ${escapeHtml(m.recipient||'')}</div><div class="time">${escapeHtml(m.timestamp||'')}</div></div>
+            <div class="subject">${escapeHtml(m.subject||'(No subject)')}</div>
+            <div class="body">${escapeHtml(m.body||'')}</div>
+          `;
+          el.appendChild(d);
+        });
+        return;
+      }
+      // fallback: no endpoint, use admin logs to find send events (server must provide /admin/logs)
+      const logsRes = await fetch(API + "/admin/logs");
+      const logs = (await logsRes.json()).data || [];
+      const sent = logs.filter(l => l.action === "SEND_MESSAGE" && l.user === username);
+      el.innerHTML = "";
+      if(!sent.length){ el.innerHTML = `<div class="small muted">No sent messages</div>`; return; }
+      sent.forEach(s=>{
+        const d = document.createElement("div");
+        d.className = "msg-item";
+        d.innerHTML = `<div class="meta"><div class="from">To: ${escapeHtml(s.details || 'n/a')}</div><div class="time">${escapeHtml(s.timestamp||'')}</div></div>
+                       <div class="subject">${escapeHtml(s.subject||'')}</div>
+                       <div class="body">${escapeHtml(s.body||'')}</div>`;
+        el.appendChild(d);
+      });
+    } catch(e){
+      console.error("loadSent", e);
+      el.innerHTML = `<div class="small muted">Error loading sent</div>`;
+    }
+  }
+
+  // open message detail modal-like inline (simple alert style or expand)
+  function openMessageDetail(m){
+    const html = `
+      <div style="padding:10px;border-radius:10px;background:#fff;border:1px solid rgba(15,23,42,0.04);">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>${escapeHtml(m.subject || '(No subject)')}</strong></div>
+          <div class="small">${escapeHtml(m.timestamp)}</div>
+        </div>
+        <div style="margin-top:8px" class="small">From: ${escapeHtml(m.sender)}</div>
+        <div style="margin-top:12px;color:#475569;">${escapeHtml(m.body)}</div>
+        <div style="margin-top:12px;">
+          <textarea id="quickReply" placeholder="Write a reply..." style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(15,23,42,0.04);"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn-primary" onclick="sendQuickReply('${escapeJs(m.sender)}')">Send Reply</button>
+            <button class="btn-primary" style="background:#94a3b8" onclick="closeDetail()">Close</button>
+          </div>
+        </div>
+      </div>
+    `;
+    // show inline top of right panel
+    const right = document.querySelector('.right');
+    const detailBox = document.createElement('div');
+    detailBox.id = 'detailBox';
+    detailBox.className = 'card-section';
+    detailBox.innerHTML = html;
+    // remove existing detail if present
+    const existing = document.getElementById('detailBox');
+    if(existing) existing.remove();
+    right.prepend(detailBox);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function closeDetail(){
+    const existing = document.getElementById('detailBox');
+    if(existing) existing.remove();
+  }
+
+  async function sendQuickReply(recipient){
+    const text = document.getElementById("quickReply").value.trim();
+    if(!text){ alert("Please write a reply."); return; }
+    try{
+      const res = await fetch(API + "/messages/send", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ sender: username, recipient, subject: "Re: (reply)", body: text })
+      });
+      if(res.ok){ alert("Reply sent"); closeDetail(); loadSent(); }
+      else { const j = await res.json(); alert(j.message || "Failed to send"); }
+    } catch(e){
+      console.error("sendQuickReply", e); alert("Network error"); 
+    }
+  }
+
+  // recent activity
+  async function loadRecent(){
+    try{
+      const res = await fetch(API + "/admin/logs");
+      const j = await res.json();
+      const arr = j.data || [];
+      const el = document.getElementById("recentActivity");
+      el.innerHTML = "";
+      arr.slice(0,8).forEach(r=>{
+        const d = document.createElement('div');
+        d.className = 'recent-item';
+        d.innerHTML = `<div style="display:flex;justify-content:space-between"><div style="font-weight:700">${escapeHtml(r.action)}</div><div class="small">${escapeHtml(r.timestamp)}</div></div><div class="small muted">${escapeHtml(r.user)}</div>`;
+        el.appendChild(d);
+      });
+    } catch(e){
+      console.error("loadRecent", e);
+    }
+  }
+  loadRecent();
+  function toggleMenu(){
+  const m = document.getElementById("userMenu");
+  m.style.display = m.style.display === "block" ? "none" : "block";
+  m.style.zIndex = 99999;  // guarantee visibility
+}
+
+  // helper escape functions
+  function escapeHtml(s){ if(!s) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\n','<br/>'); }
+  function escapeJs(s){ return (s||'').replaceAll("'", "\\'").replaceAll('"','\\"'); }
+
+  // initial data load
+  loadInbox();
+  loadSent();
+
+  // initial users loaded earlier, but refresh recent & users periodically
+  setInterval(()=>{ loadRecent(); loadUsers(); }, 60_000);
+
+</script>
+</body>
+</html>

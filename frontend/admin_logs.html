@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Admin Logs — TaskTrackr</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body{ font-family:"Segoe UI",sans-serif; margin:20px; background:#f7fbff; }
+    .top{ display:flex; gap:12px; align-items:center; }
+    input, button{ padding:8px; border-radius:8px; border:1px solid #dbe7ff; }
+    table{ width:100%; border-collapse:collapse; margin-top:12px; background:white; border-radius:8px; overflow:hidden; }
+    th,td{ padding:8px; border-bottom:1px solid #eef4ff; text-align:left; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h2>Admin Log Viewer</h2>
+    <input id="fUser" placeholder="user" />
+    <input id="fAction" placeholder="action" />
+    <input id="fStart" type="date" />
+    <input id="fEnd" type="date" />
+    <button id="filterBtn">Filter</button>
+    <button id="exportBtn">Export CSV</button>
+  </div>
+
+  <table>
+    <thead><tr><th>ID</th><th>User</th><th>Action</th><th>Task</th><th>Time</th><th>Details</th></tr></thead>
+    <tbody id="logTable"><tr><td colspan="6">Loading...</td></tr></tbody>
+  </table>
+
+<script>
+const API = "/api";
+async function loadLogs(){
+  const params = new URLSearchParams();
+  const u = document.getElementById("fUser").value.trim();
+  const a = document.getElementById("fAction").value.trim();
+  const s = document.getElementById("fStart").value;
+  const e = document.getElementById("fEnd").value;
+  if(u) params.append("user", u);
+  if(a) params.append("action", a);
+  if(s) params.append("start_date", s);
+  if(e) params.append("end_date", e);
+  const res = await fetch(API + "/admin/logs?" + params.toString());
+  const j = await res.json();
+  const t = document.getElementById("logTable");
+  if(!j.data || j.data.length===0) { t.innerHTML = '<tr><td colspan="6">No logs</td></tr>'; return; }
+  t.innerHTML = '';
+  j.data.forEach(l => {
+    t.innerHTML += `<tr><td>${l.id}</td><td>${l.user||''}</td><td>${l.action}</td><td>${l.task_id||''}</td><td>${l.timestamp}</td><td>${l.details||''}</td></tr>`;
+  });
+}
+document.getElementById("filterBtn").addEventListener("click", loadLogs);
+document.getElementById("exportBtn").addEventListener("click", ()=> window.location.href = "/api/admin/logs/export");
+loadLogs();
+</script>
+</body>
+</html>
