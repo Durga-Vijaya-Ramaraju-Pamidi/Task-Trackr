@@ -2,7 +2,7 @@
 FROM python:3.10-slim
 
 # Set working directory
-WORKDIR /backend
+WORKDIR /app
 
 # Install backend dependencies
 COPY backend/requirements.txt .
@@ -12,12 +12,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ .
 
 # Copy frontend static files into backend/static
-COPY frontend/ ./static/
+COPY frontend/ .
 
 # Expose Flask port
 EXPOSE 5000
 
 # Run Flask app
 CMD ["python", "app.py"]
+
 
 
