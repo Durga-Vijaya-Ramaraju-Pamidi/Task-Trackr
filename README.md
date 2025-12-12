@@ -10,20 +10,24 @@ Worked on the Features:
 - Simple register/login (passwords hashed)
 
 ## Run locally
+1. Clone the repository using below command:
+   ```bash
+   git clone https://github.com/Durga-Vijaya-Ramaraju-Pamidi/Task-Trackr.git
+   ```
 
-1. Create a Python virtualenv and install:
+2. Create a Python virtualenv and install:
 ```bash
 python -m venv venv
 source venv/bin/activate 
 pip install -r backend/requirements.txt
 ```
-2. Start the backend from project root:
+3. Start the backend from project root:
 
 ```bash
 cd backend
 python app.py
 ```
-3. Open the frontend:
+4. Open the frontend:
 
 Visit http://127.0.0.1:5000/ for the board
 
